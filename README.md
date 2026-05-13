@@ -46,7 +46,7 @@ git --version
 > **Screenshot 1:** Take a screenshot of your terminal showing all three
 > successful version checks and insert it here.
 >
-> `[insert screenshot]`
+> ![Screenshot1](https://github.com/Oryanick/DBMS_04/blob/master/Screenshot%201.png)`
 
 ---
 
@@ -99,6 +99,10 @@ Read the table carefully and describe one concrete example of each:
    deleted entirely?
 
 > *Your answers:*
+> 1. Wenn Mechaniker Huber seinen Stundenlohn auf 70.00 erhöht, müssten alle Zeilen geändert werden, in denen M03 / Huber, Tom vorkommen. Wenn man eine Zeile vergisst, könnten widersprüchliche Daten entstehen.
+> 2. Ein neuer Mechaniker kann nicht hinzugefügt werden, solange er noch kein Auftrag hat, denn Informationen wie OrderNo oder ItemNo fehlen würden.
+> 3. Wenn der Auftrag 1002 gelöscht wird, gehen auch alle Informationen über Kundin Novak, ihr Fahrzeug und die Reparatur dauerhaft verloren.
+
 
 ### Task 1b – Write Down Functional Dependencies
 
@@ -112,6 +116,15 @@ Hints:
 - What only follows from the combination `(OrderNo, ItemNo)`?
 
 > *Your FD list:*
+CustNo → CustName, CustCity
+
+Plate → Make, Model, Year, CustNo
+
+MechId → MechName, HourlyRate
+
+OrderNo → Date, Plate, CustNo
+
+(OrderNo, ItemNo) → MechId, Description, Hours
 
 ### Questions for Task 1
 
@@ -119,17 +132,18 @@ Hints:
 respect to the primary key `(OrderNo, ItemNo)`? Justify your answer using the
 definition from Lecture 04.
 
-> *Your answer:*
+> *Your answer:* CustNo → CustCity ist eine partielle Abhängigkeit, weil CustCity vom gesamten Primärschlüssel (OrderNo, ItemNo) nicht abhängt, sondern nur von einem Teil der Informationen über den Kunden.
 
 **Question 1.2:** Identify a transitive dependency in the flat table and explain
 why it violates 3NF.
 
-> *Your answer:*
+> *Your answer:* Eine transitive Abhängigkeit ist: OrderNo → CustNo, CustNo → CustCity
+Dadurch ergibt sich dann indirekt: OrderNo → CustCity und das verletzt die 3NF, weil ein Nicht-Schlüsselattribut von einem anderen Nicht-Schlüsselattribut abhängig ist.
 
 **Question 1.3:** Compute the attribute closure $\{\mathrm{OrderNo}\}^+$ using
 your FD list. Is `OrderNo` alone a superkey of the flat table?
 
-> *Your answer:*
+> *Your answer:* OrderNo+ enthält: OrderNo, Date, Plate, CustNo, CustName, CustCity, Make, Model, Year; Aber nicht ItemNo, MechId, Description oder Hours. Deswegen ist OrderNo allein kein Superkey der Tabelle.
 
 ---
 
@@ -154,7 +168,7 @@ then fill in the table below.
 Check: In every relation, does each non-key attribute depend on the **complete**
 primary key?
 
-> *Your check:*
+> *Your check:* Ja. In jeder Relation hängen die Nicht-Schlüsselattribute vollständig vom jeweiligen Primärschlüssel ab. Nach der Zerlegung in customer, vehicle, mechanic, order und work_item sind keine transitiven Abhängigkeiten mehr vorhanden.
 
 ### Task 2b – Decompose into 3NF
 
@@ -169,7 +183,10 @@ Examine `order` and `vehicle` for transitive dependencies.
 State your conclusion: are all five relations from Task 2a already in 3NF?
 If not, perform the missing decomposition.
 
-> *Your analysis and any further decomposition:*
+> *Your analysis and any further decomposition:*  In der Relation order hängt cust_no direkt von order_no ab, weil jede Bestellung genau einem Kunden zugeordnet ist. cust_name hängt dagegen nicht direkt von order_no ab, sondern transitiv über cust_no. Das bedeutet:order_no → cust_no, cust_no → cust_name . Dadurch entsteht eine transitive Abhängigkeit, die gegen die 3NF verstößt. Nach Zerlegung in 2NF wurde cust_name bereits korrekt in die Relation customer ausgelagert. Dadurch enthält order jetzt nur noch:order(order_no, date, plate, cust_no) und erfüllt dann damit die Anforderungen der 3NF.
+
+In der Relation vehicle gilt:plate → make, model, year, cust_no
+Alle Nichtschlüsselattribute hängen direkt vom Primärschlüssel plate ab und es existiert keine transitive Abhängigkeit zwischen Nichtschlüsselattributen. Deshalb befindet sich vehicle bereits in der 3NF und benötigt keine weitere Zerlegung. Deshwegen befinden sich also alle fünf Relationen aus Aufgabe 2a bereits in der 3NF, es ist nicht mehr notwendig , eine weitere Zerlegung zu machen.
 
 ### Task 2c – Verify Losslessness
 
@@ -181,7 +198,11 @@ $$R_1 \cap R_2 \rightarrow R_1 \setminus R_2 \quad \text{or} \quad R_1 \cap R_2 
 Name the shared attributes, state the FD you rely on, and conclude whether the
 decomposition is lossless.
 
-> *Your verification:*
+> *Your verification:*  Überprüfen der Zerlegung der ursprünglichen Tabelle in order und vehicle.
+Gemeinsames Attribut:plate
+Verwendete funktionale Abhängigkeit:plate → make, model, year, cust_no
+Das gemeinsame Attribut plate bestimmt also all die restlichen Attribute der Relation vehicle, damit gilt nach dem Heath Kriterium:R1 ∩ R2 → R2 \ R1
+Die Zerlegung ist also verlustfrei, weil man durch einen Join über plate alle ursprünglichen Informationen wieder korrekt zusammengesetzen kann, ohne dass Informationen verloren gehen.
 
 ### Questions for Task 2
 
@@ -190,20 +211,30 @@ though the customer is also reachable via the vehicle's licence plate?
 Describe a realistic scenario where the direct link `order → customer` is
 necessary.
 
-> *Your answer:*
+> *Your answer:* cust_no muss als Fremdschlüssel in order bleiben, weil ein Fahrzeug mit der Zeit den Besitzer wechseln kann. Die Bestellung muss aber weiterhin den Kunden speichern, der den Auftrag ursprünglich erteilt hat.
+Ein realistisches Beispiel wäre zum Beispiel der Verkauf eines Autos. Wenn das Fahrzeug später einem anderen Kunden gehört, müssen alte Werkstattaufträge trotzdem noch dem ursprünglichen Kunden zugeordnet bleiben. Deshalb ist die direkte Beziehung order → customer notwendig.
+
 
 **Question 2.2:** Is the schema after the 3NF decomposition also in BCNF?
 Justify your answer using the definition: for every non-trivial FD $X \rightarrow Y$,
 $X$ must be a superkey.
 
-> *Your answer:*
+> *Your answer:* Ja, das Schema befindet sich nach der Zerlegung auch in BCNF. In allen Relationen wird jede nicht-triviale funktionale Abhängigkeit von einem Superkey bestimmt. Zum Beispiel gilt:cust_no → cust_name, cust_city,  plate → make, model, year, cust_no, mech_id → mech_name, hourly_rate .
+In allen Fällen ist die linke Seite der Abhängigkeit ein Primärschlüssel beziehungsweise ein Superkey der jeweiligen Relation, deshalb erfüllen alle Tabellen die Bedingungen der BCNF.
 
 **Question 2.3:** The hourly rate of a mechanic is stored in `mechanic`. If a
 mechanic changes their rate during the year, what problem arises for already
 completed orders? How could the schema be extended to correctly record
 historical hourly rates?
 
-> *Your answer:*
+> *Your answer:*  Wenn der Stundensatz eines Mechanikers sichh später ändert, würden auch alte Aufträge automatisch den neuen Preis anzeigen. Dadurch gingen die historischen Werte verloren und alte Rechnungen würde man  nicht mehr korrekt nachvollziehen können.
+Das Schema könnte deshalb um eine zusätzliche Tabelle für historische Stundensätze erweitert werden, zum Beispiel:
+mechanic_rate_history(
+    mech_id,
+    valid_from,
+    hourly_rate
+)
+Dadurch könnte man speichern, welcher Stundensatz zu welchem Zeitpunkt gültig war. Alte Aufträge würden dann weiterhin den damals gültigen Preis verwenden.
 
 ---
 
@@ -311,7 +342,7 @@ scp <username>@<server>:/path/to/DBMS_04/schema.svg ~/Downloads/schema.svg
 > **Screenshot 2:** Take a screenshot showing the rendered diagram with all
 > five entities and their relationships.
 >
-> `[insert screenshot]`
+> ![Screenshot2](https://github.com/Oryanick/DBMS_04/blob/master/Screenshot%202.png)`
 
 ### Task 3c – Commit
 
@@ -412,7 +443,7 @@ sqlite3 workshop.db ".tables"
 
 > **Screenshot 3:** Take a screenshot showing the `.tables` output.
 >
-> `[insert screenshot]`
+> `![Screenshot3](https://github.com/Oryanick/DBMS_04/blob/master/Screenshot%203.png)``
 
 ### Task 4c – Insert Sample Data
 
@@ -488,7 +519,8 @@ git commit -m "feat: DDL and sample data for normalized workshop schema"
 Justify both choices in terms of the domain — what does it mean for the
 business if an order is deleted versus if a customer is deleted?
 
-> *Your answer:*
+> *Your answer:* ON DELETE CASCADE bei work_item.order_no bedeutet, dass alle zugehörigen Work Items automatisch gelöscht werden, wenn eine Bestellung gelöscht wird. Das ist sinnvoll, weil Work Items ohne Bestellung keinen Sinn ergeben. ON DELETE RESTRICT bei vehicle.cust_no verhindert dagegen das Löschen eines Kunden, solange noch Fahrzeuge auf ihn registriert sind. Das schützt die Datenintegrität, weil jedes Fahrzeug weiterhin einem existierenden Kunden zugeordnet bleiben muss.
+
 
 **Question 4.2:** Test referential integrity by running:
 
@@ -500,7 +532,9 @@ INSERT INTO work_item VALUES (9999, 1, 3, 'Ghost item', 1.0);
 What error do you get? What does this tell you about the difference between
 a constraint declared in DDL and one that is actually enforced at runtime?
 
-> *Your answer:*
+> *Your answer:* Die Fehlermeldung lautet: Error near line 3:FOREIGN KEY constraint failed
+Das bedeutet, dass die Bestellung 9999 nicht existiert und deshalb kein work_item darauf verweisen darf. Das zeigt den Unterschied zwischen einer in DDL definierten Constraint und ihrer tatsächlichen Durchsetzung zur Laufzeit. Die Constraint ist zwar in der Tabelle definiert, wird aber nur geprüft, wenn PRAGMA foreign_keys = ON aktiviert ist.
+
 
 **Question 4.3:** Test the CHECK constraint:
 
@@ -510,7 +544,8 @@ INSERT INTO work_item VALUES (1001, 3, 3, 'Invalid', -0.5);
 
 What happens? What would happen if the CHECK constraint were missing?
 
-> *Your answer:*
+> *Your answer:*  SQLite gibt die Fehlermeldung aus: Error near line 1:CHECK constraint failed: hours > 0
+Das passiert, weil negative Arbeitsstunden fachlich keinen Sinn ergeben und durch die CHECK-Constraint verboten sind. Ohne die CHECK-Constraint könnte man ungültige Werte wie -0.5 speichern, wodurch fehlerhafte oder unrealistische Daten in Datenbank landen würden.
 
 ---
 
@@ -528,7 +563,23 @@ Write the relational algebra expression first (in words or formal notation),
 then the SQL query.
 
 ```sql
--- Query 5a: insert here
+-- Query 5a: In Worten: Zuerst wird der Kunde „Berger, Franz“ aus customer ausgewählt. Danach werden die Tabellen order, vehicle und work_item über ihre Fremdschlüssel verbunden und am Ende werden nur die benötigten Attribute projiziert.
+
+sql Abfrage:
+SELECT o.order_no,
+       o.date,
+       v.plate,
+       w.description,
+       w.hours
+FROM customer c
+JOIN "order" o
+    ON c.cust_no = o.cust_no
+JOIN vehicle v
+    ON o.plate = v.plate
+JOIN work_item w
+    ON o.order_no = w.order_no
+WHERE c.cust_name = 'Berger, Franz'
+ORDER BY o.date, w.item_no;
 ```
 
 <details>
@@ -543,7 +594,8 @@ order 1003 (BMW 320i, 2026-03-12).
 `work_item`). In what order would the query optimizer ideally perform the joins —
 and why does the join order not affect the *result*, but does affect *performance*?
 
-> *Your answer:*
+> *Your answer:* Der Query Optimizer wird normalerweise zuerst die Tabellen mit den stärksten Einschränkungen filtern, zum Beispiel zuerst customer mit cust_name = 'Berger, Franz', damit möglichst wenige Zeilen weiter verarbeitet werden müssen; Die Reihenfolge der Joins verändert das Ergebnis nicht, weil Joins auf dieselben Bedingungen basieren und relational algebraisch äquivalent sind. Die Reihenfolge beeinflusst aber die Performance, weil unterschiedliche Join Reihenfolgen unterschiedlich viele Zwischenresultate erzeugen.
+
 
 ---
 
@@ -556,6 +608,18 @@ least one work item). Sort descending by `total_hours`.
 
 ```sql
 -- Query 5b: insert here
+
+SELECT m.mech_name,
+       ROUND(SUM(w.hours), 1) AS total_hours,
+       COUNT(DISTINCT w.order_no) AS orders
+FROM mechanic m
+JOIN work_item w
+    ON m.mech_id = w.mech_id
+JOIN "order" o
+    ON w.order_no = o.order_no
+WHERE o.date BETWEEN '2026-03-01' AND '2026-03-31'
+GROUP BY m.mech_name
+ORDER BY total_hours DESC;
 ```
 
 <details>
@@ -572,7 +636,7 @@ least one work item). Sort descending by `total_hours`.
 What would `COUNT(*)` count instead, and why would the result differ in this
 case?
 
-> *Your answer:*
+> *Your answer:* COUNT(DISTINCT order_no) zählt die Anzahl von verschiedenen Bestellungen, an denen ein Mechaniker gearbeitet hat; COUNT(*) würde dagegen alle einzelnen Work Items zählen. Das Ergebnis unterscheidet sich hier, weil eine Bestellung mehrere Work Items enthalten könnte.
 
 ---
 
@@ -588,8 +652,26 @@ Use a set-difference approach with `EXCEPT` and also write an alternative using
 -- Variant 1: EXCEPT
 -- Query 5c-1: insert here
 
+SELECT plate, model
+FROM vehicle
+
+EXCEPT
+
+SELECT v.plate, v.model
+FROM vehicle v
+JOIN "order" o
+    ON v.plate = o.plate;
+
 -- Variant 2: NOT EXISTS
 -- Query 5c-2: insert here
+
+SELECT v.plate, v.model
+FROM vehicle v
+WHERE NOT EXISTS (
+    SELECT *
+    FROM "order" o
+    WHERE o.plate = v.plate
+);
 ```
 
 <details>
@@ -610,7 +692,7 @@ After that, the query should return `BOT-ZZ 1 | Yaris`.
 always produce the same result. Are there situations where one approach should
 be preferred in practice? Consider readability and extensibility.
 
-> *Your answer:*
+> *Your answer:*  EXCEPT und NOT EXISTS liefern logisch dasselbe Ergebnis. NOT EXISTS ist in der Praxis oft leichter erweiterbar und besser lesbar, besonders bei komplexeren Bedingungen oder mehreren Tabellen. EXCEPT eignet sich dagegen besser, wenn man zwei Ergebnismengen direkt vergleichen will.
 
 ---
 
@@ -630,14 +712,16 @@ The original flat table had 5 rows and 15 columns. The normalized schema has
 5 tables. At which data volume does normalization pay off most — at 5 rows or
 at 50,000? Justify with concrete reference to the anomalies from Task 1a.
 
-> *Your answer:*
+> *Your answer:* Die Normalisierung lohnt sich besonders bei großen Datenmengen wie 50 000 Zeilen. Bei nur 5 Zeilen sind Redundanzen noch überschaubar. Bei großen Tabellen würden Update, Insert und Delete Anomalien schnell zu Inkonsistenzen führen. Zum Beispiel müsste eine Änderung des Stundenlohns eines Mechanikers sonst in sehr vielen Zeilen gleichzeitig angepasst werden.
+
 
 **Question B – 3NF vs. BCNF:**  
 Lecture 04 explains that BCNF is not always dependency-preserving. Is this
 relevant for the workshop schema? Would a BCNF decomposition have looked
 different from the 3NF decomposition here?
 
-> *Your answer:*
+> *Your answer:* Für dieses Werkstattschema macht die BCNF praktisch keinen Unterschied zur 3NF, weil dort alle funktionalen Abhängigkeiten bereits von Schlüsseln ausgehen. Eine weitere Zerlegung wäre hier nicht notwendig gewesen, deswegen würde eine BCNF Zerlegung fast identisch aussehen wie die 3NF Zerlegung.
+
 
 **Question C – Redundant foreign key in `order`:**  
 `order` contains both `plate` (FK → `vehicle`) and `cust_no` (FK → `customer`).
@@ -645,7 +729,7 @@ Since `vehicle` itself contains `cust_no`, one might argue that `cust_no`
 in `order` is redundant and violates 3NF. Is that correct? When would such
 a deliberate denormalization be justified?
 
-> *Your answer:*
+> *Your answer:* Streng genommen ist cust_no in order redundant, weil der Kunde bereits über vehicle -> cust_no erreichbar ist. Trotzdem kann diese bewusste Denormalisierung sinnvoll sein, um Abfragen einfacher und schneller zu machen oder historische Daten korrekt zu speichern, falls ein Fahrzeug später den Besitzer wechseln würde.
 
 **Question D – NULL and order status:**  
 An order that has just been created may have no work items yet. What does the
@@ -653,12 +737,30 @@ current schema say about this case? Would the schema need to be extended to
 correctly represent an order's status (open / completed)? Sketch the necessary
 change.
 
-> *Your answer:*
+> *Your answer:*  Im aktuellen Schema kann ein Auftrag existieren, auch wenn noch keine work_item Einträge vorhanden sind. Das bedeutet, ein Auftrag kann bereits angelegt werden, bevor konkrete Arbeite hinzugefügt werden.
+Ein Problem ist aber, dass das Schema keinen eigenen Auftragsstatus speichert. Dadurch kann die Datenbank nicht unterscheiden, ob ein Auftrag offen, in Bearbeitung oder abgeschlossen ist.
+Die notwendige Änderung wäre eine Erweiterung der Tabelle order um eine zusätzliche Status Spalte.
+
+Beispiel:
+CREATE TABLE "order" (
+    order_no INTEGER PRIMARY KEY,
+    plate    TEXT    NOT NULL,
+    cust_no  INTEGER NOT NULL,
+    date     DATE    NOT NULL,
+    status   TEXT    NOT NULL,
+
+    FOREIGN KEY (plate) REFERENCES vehicle(plate)
+       ON DELETE RESTRICT ON UPDATE CASCADE,
+    FOREIGN KEY (cust_no) REFERENCES customer(cust_no)
+       ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+Mögliche Werte für status wären zum Beispiel open, in progress,completed und damit könnte man der aktuelle Zustand eines Auftrags korrekt speichern und später eindeutig ausgewerten.
 
 > **Screenshot 4:** Take a screenshot showing the output of Query 5b directly
 > in `sqlite3` (with `.headers on` and `.mode column` activated).
 >
-> `[insert screenshot]`
+> `![Screenshot4](https://github.com/Oryanick/DBMS_04/blob/master/Screenshot%204.png)``
 
 ---
 
