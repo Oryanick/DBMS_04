@@ -1,0 +1,25 @@
+name: Render Schema
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install PlantUML
+        run: sudo apt-get update && sudo apt-get install -y plantuml
+
+      - name: Render SVG
+        run: plantuml -tsvg schema.puml
+
+      - name: Publish Release
+        run: gh release create ${{ github.ref_name }} schema.svg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
